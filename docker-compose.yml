@@ -1,0 +1,75 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:-flightadmin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-flightpassword}
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  predictor:
+    build: ./ml-predictor
+    restart: unless-stopped
+    environment:
+      PORT: 5001
+      MODEL_PATH: artifacts/flight_delay_model.pkl
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+    volumes:
+      - ./ml-predictor/artifacts:/app/artifacts:ro
+    ports:
+      - "5001:5001"
+
+  analyser:
+    build: ./ml-analyser
+    restart: unless-stopped
+    environment:
+      PORT: 5002
+      METRICS_PATH: artifacts/model_metrics.json
+    volumes:
+      - ./ml-analyser/artifacts:/app/artifacts:ro
+    ports:
+      - "5002:5002"
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      predictor:
+        condition: service_started
+      analyser:
+        condition: service_started
+    environment:
+      PORT: 4000
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME:-flightadmin}:${MONGO_ROOT_PASSWORD:-flightpassword}@mongo:27017/flight_delay?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-development-only-secret-change-me}
+      JWT_EXPIRES_IN: 7d
+      CLIENT_URL: http://localhost:3000
+      PREDICTOR_URL: http://predictor:5001
+      ANALYSER_URL: http://analyser:5002
+      ADMIN_REGISTRATION_KEY: ${ADMIN_REGISTRATION_KEY:-local-demo-admin-key}
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      REACT_APP_API_URL: http://localhost:4000/api
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+
+volumes:
+  mongo_data:

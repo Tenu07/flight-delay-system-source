@@ -1,0 +1,12 @@
+.env
+node_modules/
+build/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.log
+data/raw/
+data/processed/
+artifacts/*.pkl
+artifacts/*.joblib
+.DS_Store
