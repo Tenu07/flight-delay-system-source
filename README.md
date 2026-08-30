@@ -10,22 +10,6 @@ This repository implements the supplied system architecture as a runnable five-s
 
 The project includes a transparent development fallback so the complete interface works before a trained model file is added. The fallback is clearly labelled in every response and must not be presented as a trained research result.
 
-## Architecture
-
-```text
-Browser (React :3000)
-        |
-        v
-Express API :4000  ----> MongoDB :27017
-   |          |
-   |          +--------> Route analyser (Flask :5002)
-   +-------------------> Delay predictor (Flask :5001) ---> OpenWeather
-                                      |
-                                      +--> XGBoost artifact + SHAP
-```
-
-Express is the only application API exposed to the browser. It validates JWTs, applies role rules, calls the ML services, persists prediction results, and always returns `{ "success": true, "data": ... }` or `{ "success": false, "error": "..." }`.
-
 ## Quick start with Docker
 
 1. Copy `.env.example` to `.env`.
@@ -137,6 +121,13 @@ JWTs are stored in local storage to match the supplied architecture. For a highe
 - `GET /model/metrics`
 
 The route analyser currently produces deterministic, route-specific demonstration aggregates until BTS route statistics are connected. This prevents random UI changes while keeping untrained values visibly identified as demonstrations.
+
+
+## Admin account details
+
+User name: admin@flightsignal.ai 
+password: FlightAdmin@2026
+
 
 ## Tests and checks
 
